@@ -17,7 +17,7 @@ const initialize = (passport) => {
                 return done(null, false, { message: 'Password incorrect' });
             }
 
-            return done(null, user);
+            return done(null, user, { message: 'Logged in successfully' });
         } catch (error) {
             return done(error, false);
         }
@@ -41,7 +41,7 @@ const isAuthenticated = (req, res, next) => {
         return next();
     }
 
-    return res.status(401).json({ message: 'Unauthorized Access' });
+    return res.status(401).json({ statusCode: 401, message: 'You are not logged in' });
 };
 
 module.exports = {

@@ -1,25 +1,23 @@
 const path = require('path');
 const passport = require('passport');
 const express = require('express');
-const session = require('express-session');
 const router = express.Router();
 const userController = require(path.join(__dirname, '..', 'controller', 'userController'));
-const { sessionObj } = require(path.join(__dirname, '..', 'config', 'main.js'));
 
-
-router.use(session(sessionObj));
-router.use(passport.initialize());
-router.use(passport.session());
 
 
 router.post('/login', (req, res, next) => {
+    if (req.isAuthenticated()) {
+        return res.status(401).json({ statusCode: 401, message: 'You are already logged in' });
+    }
+
     passport.authenticate('local', (err, user, info) => {
         if (err) {
-            return res.status(500).json({ message: info});
+            return res.status(500).json({ statusCode: 500, message: err.message });
         }
 
         if (!user) {
-            return res.status(401).json({ message: info });
+            return res.status(401).json({ statusCode: 401, message: info.message });
         }
 
         req.logIn(user, (err) => {
@@ -27,7 +25,7 @@ router.post('/login', (req, res, next) => {
                 return next(err);
             }
 
-            return res.json({ message: 'Login successful', user: user });
+            return res.json({ statusCode: 200, message: info.message, user: user, session: req.session });
         });
     })(req, res, next);
 });
@@ -37,17 +35,21 @@ router.post('/login', (req, res, next) => {
 router.post('/signup', userController.signup);
 
 router.post('/logout', (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            return res.json({ message: 'Logout failed' });
-        }
+    if (req.isAuthenticated()) {
+        req.logout((err) => {
+            if (err) {
+                return res.json({ statusCode: 500, message: err.message });
+            }
 
-        req.session.destroy();
+            req.session.destroy();
 
-        res.clearCookie('connect.sid');
+            res.clearCookie('connect.sid');
 
-        return res.json({ message: 'Logout successful' });
-    });
+            return res.json({ statusCode: 200, message: 'Logged out successfully' });
+        });
+    } else {
+        return res.json({ statusCode: 401, message: 'No session found' });
+    }
 });
 
 module.exports = router;
